@@ -603,6 +603,8 @@ pub trait Dispatch<T: UserEvent>: Debug + Clone + Send + Sync + Sized + 'static 
   ///
   /// Returns None if current monitor can't be detected.
   fn current_monitor(&self) -> Result<Option<Monitor>>;
+  fn cursor_position(&self) -> Result<PhysicalPosition<i32>>;
+  fn monitor_from_point(&self, position: Position) -> Result<Option<Monitor>>;
 
   /// Returns the primary monitor of the system.
   ///

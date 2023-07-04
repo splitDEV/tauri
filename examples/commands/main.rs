@@ -9,7 +9,7 @@ mod commands;
 use commands::{cmd, invoke, message, resolver};
 
 use serde::Deserialize;
-use tauri::{command, State, Window};
+use tauri::{command, State, Window, Manager};
 
 #[derive(Debug)]
 pub struct MyState {
@@ -30,6 +30,31 @@ fn window_label(window: Window) {
   println!("window label: {}", window.label());
 }
 
+#[command]
+fn test_api(window: Window) {
+  let position = window.cursor_position().unwrap();
+  let monitor = window.monitor_from_point(position).unwrap().expect("Not found");
+  println!("Cursor({}, {}), Monitor({})", position.x, position.y, monitor.name().unwrap());
+}
+#[command]
+fn center(window: Window) {
+  let position = window.cursor_position().unwrap();
+  let monitor = window.monitor_from_point(position).unwrap().expect("Not found");
+
+  window.set_position(position).unwrap();
+  window.center().unwrap();
+}
+#[command]
+fn cursor_position(window: Window) {
+  let cursor = window.cursor_position().unwrap();
+  println!("window cursor: {},{}", cursor.x, cursor.y);
+}
+#[command]
+fn monitor_from_point(window: Window) {
+  let position = window.cursor_position().unwrap();
+  let monitor = window.monitor_from_point(position).unwrap().expect("Not found");
+  println!("Current monitor: {}", monitor.name().unwrap());
+}
 // Async commands
 
 #[command]
@@ -220,6 +245,10 @@ fn main() {
       label: "Tauri!".into(),
     })
     .invoke_handler(tauri::generate_handler![
+      center,
+      test_api,
+      cursor_position,
+      monitor_from_point,
       borrow_cmd,
       borrow_cmd_async,
       window_label,

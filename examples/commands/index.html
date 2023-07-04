@@ -27,6 +27,9 @@
 
       const container = document.querySelector('#container')
       const commands = [
+        { name: 'center' },
+        { name: 'cursor_position' },
+        { name: 'monitor_from_point' },
         { name: 'borrow_cmd' },
         { name: 'window_label' },
         { name: 'simple_command' },
@@ -74,6 +77,10 @@
         })
         container.appendChild(button)
       }
+      function poll_monitor() {
+        window.__TAURI__.invoke("test_api");
+      }
+      setInterval(poll_monitor, 200);
     </script>
   </body>
 </html>

@@ -7,5 +7,13 @@
   </head>
   <body>
     <h1>Welcome to Tauri!</h1>
+    <script>
+      // access the pre-bundled global API functions
+      const { invoke } = window.__TAURI__.tauri
+      // now we can call our Command!
+      // You will see "Welcome from Tauri" replaced
+      // by "Hello, World!"!
+      invoke('call_me')
+    </script>
   </body>
 </html>

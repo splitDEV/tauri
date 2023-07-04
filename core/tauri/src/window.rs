@@ -1186,6 +1186,19 @@ impl<R: Runtime> Window<R> {
       .map_err(Into::into)
   }
 
+  /// some docs
+  pub fn cursor_position(&self) -> crate::Result<PhysicalPosition<i32>> {
+    self.window.dispatcher.cursor_position().map_err(Into::into)
+  }
+  /// some docs
+  pub fn monitor_from_point<Pos: Into<Position>>(&self, position: Pos) -> crate::Result<Option<Monitor>> {
+    self
+      .window
+      .dispatcher
+      .monitor_from_point(position.into())
+      .map(|m| m.map(Into::into))
+      .map_err(Into::into)
+  }
   /// Returns the primary monitor of the system.
   ///
   /// Returns None if it can't identify any monitor as a primary one.

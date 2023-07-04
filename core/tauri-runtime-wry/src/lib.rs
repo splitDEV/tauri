@@ -1088,6 +1088,8 @@ pub enum WindowMessage {
   Title(Sender<String>),
   IsMenuVisible(Sender<bool>),
   CurrentMonitor(Sender<Option<MonitorHandle>>),
+  CursorPosition(Sender<Result<PhysicalPosition<i32>>>),
+  MonitorFromPoint(Position, Sender<Option<MonitorHandle>>),
   PrimaryMonitor(Sender<Option<MonitorHandle>>),
   AvailableMonitors(Sender<Vec<MonitorHandle>>),
   #[cfg(any(
@@ -1352,6 +1354,30 @@ impl<T: UserEvent> Dispatch<T> for WryDispatcher<T> {
 
   fn current_monitor(&self) -> Result<Option<Monitor>> {
     Ok(window_getter!(self, WindowMessage::CurrentMonitor)?.map(|m| MonitorHandleWrapper(m).into()))
+  }
+
+  fn cursor_position(&self) -> Result<PhysicalPosition<i32>> {
+    window_getter!(self, WindowMessage::CursorPosition)?
+  }
+
+  // fn monitor_from_point(&self, position: Position) -> Result<Option<Monitor>> {
+  //   let (tx, rx) = channel();
+  //   let result = send_user_message(
+  //     &self.context,
+  //     Message::Window(self.window_id, WindowMessage::MonitorFromPoint(position, tx))
+  //   )?;
+  //   Ok(rx.recv().map_err(|_| Error::FailedToReceiveMessage))
+  //   // Ok(None)
+  //   // window_getter!(self, position, WindowMessage::MonitorFromPoint)?
+  // }
+  fn monitor_from_point(&self, position: Position) -> Result<Option<Monitor>> {
+    Ok({
+      let(tx,rx) = channel();
+      {
+        send_user_message(&self.context,Message::Window(self.window_id,WindowMessage::MonitorFromPoint(position, tx)))?;
+        rx.recv().map_err(|_|Error::FailedToReceiveMessage)
+      }
+    }?.map(|m| MonitorHandleWrapper(m).into()))
   }
 
   fn primary_monitor(&self) -> Result<Option<Monitor>> {
@@ -2405,6 +2431,41 @@ fn handle_user_message<T: UserEvent>(
             WindowMessage::Title(tx) => tx.send(window.title()).unwrap(),
             WindowMessage::IsMenuVisible(tx) => tx.send(window.is_menu_visible()).unwrap(),
             WindowMessage::CurrentMonitor(tx) => tx.send(window.current_monitor()).unwrap(),
+            WindowMessage::CursorPosition(tx) => tx
+              .send(
+                window
+                  // <Result<tauri_runtime::window::dpi::PhysicalPosition<i32>, ExternalError> as Into<T>>::into(window
+                  .cursor_position()
+                  .map(|p| PhysicalPosition::<i32> { x: p.x as i32, y: p.y as i32 }) //.into()
+                  .map_err(|_| Error::FailedToSendMessage),
+              )
+              .unwrap(),
+            WindowMessage::MonitorFromPoint(position, tx) => {
+              let x: f64;
+              let y: f64;
+              match position {
+                Position::Physical(position) => {
+                  x = position.x as f64;
+                  y = position.y as f64;
+                },
+                Position::Logical(position) => {
+                  x = position.x;
+                  y = position.y;
+                },
+              }
+
+              tx.send(window.monitor_from_point(x, y)).unwrap()
+            },
+              // window.set_outer_position(PositionWrapper::from(position).0)
+            // WindowMessage::MonitorFromPoint(position, tx) => {
+            //   tx.send(
+            //     window
+            //       .monitor_from_point(position).unwrap()
+            //       .map(|p| PhysicalPosition::<i32> { x: p.x as i32, y: p.y as i32 }) //.into()
+            //       .map_err(|_| Error::FailedToSendMessage),
+            //   )
+            //   .unwrap()
+            // },
             WindowMessage::PrimaryMonitor(tx) => tx.send(window.primary_monitor()).unwrap(),
             WindowMessage::AvailableMonitors(tx) => {
               tx.send(window.available_monitors().collect()).unwrap()
