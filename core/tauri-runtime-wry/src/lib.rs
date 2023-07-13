@@ -1938,6 +1938,25 @@ impl<T: UserEvent> RuntimeHandle<T> for WryHandle<T> {
     self.context.main_thread.window_target.raw_display_handle()
   }
 
+  fn primary_monitor(&self) -> Option<Monitor> {
+    self
+      .context
+      .main_thread
+      .window_target
+      .primary_monitor()
+      .map(|m| MonitorHandleWrapper(m).into())
+  }
+
+  fn available_monitors(&self) -> Vec<Monitor> {
+    self
+      .context
+      .main_thread
+      .window_target
+      .available_monitors()
+      .map(|m| MonitorHandleWrapper(m).into())
+      .collect()
+  }
+
   #[cfg(target_os = "macos")]
   fn show(&self) -> tauri_runtime::Result<()> {
     send_user_message(
@@ -2114,6 +2133,25 @@ impl<T: UserEvent> Runtime<T> for Wry<T> {
       .lock()
       .unwrap()
       .push(Arc::new(Box::new(f)));
+  }
+
+  fn primary_monitor(&self) -> Option<Monitor> {
+    self
+      .context
+      .main_thread
+      .window_target
+      .primary_monitor()
+      .map(|m| MonitorHandleWrapper(m).into())
+  }
+
+  fn available_monitors(&self) -> Vec<Monitor> {
+    self
+      .context
+      .main_thread
+      .window_target
+      .available_monitors()
+      .map(|m| MonitorHandleWrapper(m).into())
+      .collect()
   }
 
   #[cfg(target_os = "macos")]
