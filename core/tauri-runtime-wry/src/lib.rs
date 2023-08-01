@@ -749,6 +749,7 @@ impl WindowBuilder for WindowBuilderWrapper {
         .decorations(config.decorations)
         .maximized(config.maximized)
         .always_on_top(config.always_on_top)
+        .visible_on_all_workspaces(config.visible_on_all_workspaces)
         .content_protected(config.content_protected)
         .skip_taskbar(config.skip_taskbar)
         .theme(config.theme)
@@ -872,6 +873,13 @@ impl WindowBuilder for WindowBuilderWrapper {
 
   fn always_on_top(mut self, always_on_top: bool) -> Self {
     self.inner = self.inner.with_always_on_top(always_on_top);
+    self
+  }
+
+  fn visible_on_all_workspaces(mut self, visible_on_all_workspaces: bool) -> Self {
+    self.inner = self
+      .inner
+      .with_visible_on_all_workspaces(visible_on_all_workspaces);
     self
   }
 
@@ -1123,6 +1131,7 @@ pub enum WindowMessage {
   SetDecorations(bool),
   SetShadow(bool),
   SetAlwaysOnTop(bool),
+  SetVisibleOnAllWorkspaces(bool),
   SetContentProtected(bool),
   SetSize(Size),
   SetMinSize(Option<Size>),
@@ -1573,6 +1582,16 @@ impl<T: UserEvent> Dispatch<T> for WryDispatcher<T> {
     send_user_message(
       &self.context,
       Message::Window(self.window_id, WindowMessage::SetAlwaysOnTop(always_on_top)),
+    )
+  }
+
+  fn set_visible_on_all_workspaces(&self, visible_on_all_workspaces: bool) -> Result<()> {
+    send_user_message(
+      &self.context,
+      Message::Window(
+        self.window_id,
+        WindowMessage::SetVisibleOnAllWorkspaces(visible_on_all_workspaces),
+      ),
     )
   }
 
@@ -2560,6 +2579,9 @@ fn handle_user_message<T: UserEvent>(
               window.set_has_shadow(_enable);
             }
             WindowMessage::SetAlwaysOnTop(always_on_top) => window.set_always_on_top(always_on_top),
+            WindowMessage::SetVisibleOnAllWorkspaces(visible_on_all_workspaces) => {
+              window.set_visible_on_all_workspaces(visible_on_all_workspaces)
+            }
             WindowMessage::SetContentProtected(protected) => {
               window.set_content_protection(protected)
             }
@@ -3186,7 +3208,9 @@ fn create_webview<T: UserEvent>(
   }
   if let Some(navigation_handler) = pending.navigation_handler {
     webview_builder = webview_builder.with_navigation_handler(move |url| {
-      Url::parse(&url).map(&navigation_handler).unwrap_or(true)
+      Url::parse(&url)
+        .map(|url| navigation_handler(&url))
+        .unwrap_or(true)
     });
   }
   if let Some(user_agent) = webview_attributes.user_agent {
